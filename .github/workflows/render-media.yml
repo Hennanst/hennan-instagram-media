@@ -5,6 +5,7 @@ on:
     paths:
       - 'sources/**.html'
       - 'sources/**.html.gz.b64'
+      - 'sources/**.html.gz.b64.part*'
       - 'scripts/render_media.py'
       - '.github/workflows/render-media.yml'
   workflow_dispatch:
