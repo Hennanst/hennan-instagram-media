@@ -4,10 +4,15 @@
 Public repository contains only publication-intended assets. The script renders
 HTML sources to 1080x1350 JPEGs, verifies the exact NeuroEvidence mark, and
 writes byte-level manifests for G9 pre-publish QA.
+
+Sources may be plain ``.html`` files or gzip-compressed HTML wrapped as Base64
+text in ``.html.gz.b64`` files. The compressed form keeps the public staging
+repository lightweight while remaining auditable text.
 """
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import json
 import tempfile
@@ -51,6 +56,10 @@ class SourceAuditParser(HTMLParser):
         self.mark_hashes.append(hashlib.sha256(raw).hexdigest())
 
 
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -59,9 +68,25 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def load_source(source: Path) -> tuple[str, str, str]:
+    """Return (job_id, html_text, decoded_html_sha256)."""
+    name = source.name
+    if name.endswith(".html.gz.b64"):
+        job_id = name[: -len(".html.gz.b64")]
+        envelope = source.read_text(encoding="ascii").strip()
+        compressed = base64.b64decode(envelope, validate=True)
+        html_bytes = gzip.decompress(compressed)
+        html_text = html_bytes.decode("utf-8")
+        return job_id, html_text, sha256_bytes(html_bytes)
+    if name.endswith(".html"):
+        job_id = name[: -len(".html")]
+        html_bytes = source.read_bytes()
+        return job_id, html_bytes.decode("utf-8"), sha256_bytes(html_bytes)
+    raise RuntimeError(f"Unsupported source envelope: {source}")
+
+
 def render_source(source: Path) -> None:
-    job_id = source.stem
-    html_text = source.read_text(encoding="utf-8")
+    job_id, html_text, decoded_source_sha = load_source(source)
 
     parser = SourceAuditParser()
     parser.feed(html_text)
@@ -82,7 +107,7 @@ def render_source(source: Path) -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         pdf_path = Path(tmp) / f"{job_id}.pdf"
-        HTML(filename=str(source)).write_pdf(str(pdf_path))
+        HTML(string=html_text, base_url=str(ROOT)).write_pdf(str(pdf_path))
         doc = fitz.open(pdf_path)
         if doc.page_count != parser.pages:
             raise RuntimeError(
@@ -122,8 +147,9 @@ def render_source(source: Path) -> None:
 
     manifest = {
         "job_id": job_id,
-        "source": source.name,
-        "source_sha256": sha256_file(source),
+        "source_envelope": source.name,
+        "source_envelope_sha256": sha256_file(source),
+        "decoded_html_sha256": decoded_source_sha,
         "pages": parser.pages,
         "format": "JPEG",
         "dimensions": [EXPECTED_WIDTH, EXPECTED_HEIGHT],
@@ -143,7 +169,9 @@ def render_source(source: Path) -> None:
 
 
 def main() -> None:
-    sources = sorted(SOURCES.glob("HST-IG-*.html"))
+    plain = list(SOURCES.glob("HST-IG-*.html"))
+    compressed = list(SOURCES.glob("HST-IG-*.html.gz.b64"))
+    sources = sorted({*plain, *compressed})
     if not sources:
         print("No sources found; nothing to render.")
         return
