@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'sources/**.html'
+      - 'sources/**.html.gz.b64'
       - 'scripts/render_media.py'
       - '.github/workflows/render-media.yml'
   workflow_dispatch:
