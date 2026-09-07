@@ -2,8 +2,13 @@
 """Deterministic renderer for Instagram staging media.
 
 Public repository contains only publication-intended assets. The script renders
-HTML sources to 1080x1350 JPEGs, verifies the exact NeuroEvidence mark, and
-writes byte-level manifests for G9 pre-publish QA.
+HTML sources to 1080x1350 JPEGs and writes byte-level manifests for G9
+pre-publish QA.
+
+Brand validation is backward-compatible:
+- legacy sources keep the exact canonical NeuroEvidence PNG mark rule;
+- new NeuroNoesis sources declare ``data-brand-system="neuronoeis"`` on the
+  document and include exactly one ``.neuronoeis-mark`` element per page.
 
 Sources may be plain ``.html`` files, one ``.html.gz.b64`` envelope, or a set
 of chunked envelopes named ``.html.gz.b64.part01``, ``part02`` and so on.
@@ -37,15 +42,21 @@ class SourceAuditParser(HTMLParser):
         super().__init__()
         self.pages = 0
         self.mark_hashes: list[str] = []
+        self.neuronoeis_marks = 0
+        self.brand_system: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         data = {k: v for k, v in attrs}
+        if self.brand_system is None and data.get("data-brand-system"):
+            self.brand_system = str(data.get("data-brand-system"))
         if data.get("data-document-role") == "page":
             self.pages += 1
-        if tag.lower() != "img":
-            return
+
         classes = set((data.get("class") or "").split())
-        if "neuro-mark" not in classes:
+        if "neuronoeis-mark" in classes:
+            self.neuronoeis_marks += 1
+
+        if tag.lower() != "img" or "neuro-mark" not in classes:
             return
         src = data.get("src") or ""
         prefix = "data:image/png;base64,"
@@ -98,13 +109,24 @@ def load_source(source: Path) -> tuple[str, str, str, list[str], str]:
     raise RuntimeError(f"Unsupported source envelope: {source}")
 
 
-def render_source(source: Path) -> None:
-    job_id, html_text, decoded_source_sha, envelope_names, envelope_sha = load_source(source)
+def validate_brand(job_id: str, parser: SourceAuditParser) -> dict:
+    system = (parser.brand_system or "legacy_neuroevidence").strip().lower()
+    if system == "neuronoeis":
+        if parser.mark_hashes:
+            raise RuntimeError(f"{job_id}: legacy NeuroEvidence image mark prohibited in NeuroNoesis source")
+        if parser.neuronoeis_marks != parser.pages:
+            raise RuntimeError(
+                f"{job_id}: NeuroNoesis mark count {parser.neuronoeis_marks} != page count {parser.pages}"
+            )
+        return {
+            "system": "NeuroNoesis",
+            "status": "PASS_ALL_PAGES",
+            "count": parser.neuronoeis_marks,
+            "validation": "class-count-per-page",
+        }
 
-    parser = SourceAuditParser()
-    parser.feed(html_text)
-    if parser.pages < 1:
-        raise RuntimeError(f"{job_id}: no data-document-role=page sections found")
+    if parser.neuronoeis_marks:
+        raise RuntimeError(f"{job_id}: NeuroNoesis mark found in legacy NeuroEvidence source")
     if len(parser.mark_hashes) != parser.pages:
         raise RuntimeError(
             f"{job_id}: NeuroEvidence mark count {len(parser.mark_hashes)} != page count {parser.pages}"
@@ -112,6 +134,23 @@ def render_source(source: Path) -> None:
     wrong = [h for h in parser.mark_hashes if h != CANONICAL_NEUROEVIDENCE_SHA256]
     if wrong:
         raise RuntimeError(f"{job_id}: non-canonical NeuroEvidence mark detected")
+    return {
+        "system": "NeuroEvidence_legacy",
+        "status": "PASS_ALL_PAGES",
+        "sha256": CANONICAL_NEUROEVIDENCE_SHA256,
+        "count": len(parser.mark_hashes),
+        "validation": "canonical-png-sha256",
+    }
+
+
+def render_source(source: Path) -> None:
+    job_id, html_text, decoded_source_sha, envelope_names, envelope_sha = load_source(source)
+
+    parser = SourceAuditParser()
+    parser.feed(html_text)
+    if parser.pages < 1:
+        raise RuntimeError(f"{job_id}: no data-document-role=page sections found")
+    brand_manifest = validate_brand(job_id, parser)
 
     out_dir = FEED / job_id
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -168,17 +207,13 @@ def render_source(source: Path) -> None:
         "dimensions": [EXPECTED_WIDTH, EXPECTED_HEIGHT],
         "render_dpi": RENDER_DPI,
         "jpeg_quality": JPEG_QUALITY,
-        "neuroevidence_mark": {
-            "status": "PASS_ALL_PAGES",
-            "sha256": CANONICAL_NEUROEVIDENCE_SHA256,
-            "count": len(parser.mark_hashes),
-        },
+        "brand_mark": brand_manifest,
         "items": items,
     }
     (out_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"PASS {job_id}: {parser.pages} page(s), canonical mark on every page")
+    print(f"PASS {job_id}: {parser.pages} page(s), {brand_manifest['system']} mark on every page")
 
 
 def main() -> None:
