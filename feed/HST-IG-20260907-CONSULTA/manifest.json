@@ -1,0 +1,87 @@
+{
+  "job_id": "HST-IG-20260907-CONSULTA",
+  "source_envelopes": [
+    "HST-IG-20260907-CONSULTA.html"
+  ],
+  "source_envelope_aggregate_sha256": "aef888777565f8703f303fa7942a32c54a757e1b74b2c34f06026255646b114f",
+  "decoded_html_sha256": "aef888777565f8703f303fa7942a32c54a757e1b74b2c34f06026255646b114f",
+  "pages": 7,
+  "format": "JPEG",
+  "dimensions": [
+    1080,
+    1350
+  ],
+  "render_dpi": 96,
+  "jpeg_quality": 94,
+  "brand_mark": {
+    "system": "NeuroNoesis",
+    "status": "PASS_ALL_PAGES",
+    "count": 7,
+    "validation": "class-count-per-page"
+  },
+  "items": [
+    {
+      "page": 1,
+      "file": "01.jpg",
+      "sha256": "94fd9df251919c334c2a3c3c7add13cd0386f820cb139019f6975aaeaee985d6",
+      "bytes": 219620,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 2,
+      "file": "02.jpg",
+      "sha256": "aef35aae8c40a73ce4a13788b07d26f715919f0f47b5616b23cece8d79f24ad6",
+      "bytes": 165177,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 3,
+      "file": "03.jpg",
+      "sha256": "a798bc8e672e3013ed2b3ef35643bbfc34eecc700d1af2c831239092daeb4026",
+      "bytes": 228392,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 4,
+      "file": "04.jpg",
+      "sha256": "7da4b74361277a7eedc163b48cc6b0ea8d12931a460938047c51f1704383a57b",
+      "bytes": 238465,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 5,
+      "file": "05.jpg",
+      "sha256": "eb7beca05f1c311297b48c22197d398635719cf47cebc04cf090cd6e2ed9c289",
+      "bytes": 247642,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 6,
+      "file": "06.jpg",
+      "sha256": "0448d326e30500157e9fa8ca613051ff3e51b107b9160b540a6b46c31529c02a",
+      "bytes": 244026,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    },
+    {
+      "page": 7,
+      "file": "07.jpg",
+      "sha256": "5fa8c5cd0e1c372c9664d62f1fb99bf9afc74204dbd716f3e965f3946eedb44b",
+      "bytes": 184978,
+      "width": 1080,
+      "height": 1350,
+      "mode": "RGB"
+    }
+  ]
+}
