@@ -51,11 +51,9 @@ class SourceAuditParser(HTMLParser):
             self.brand_system = str(data.get("data-brand-system"))
         if data.get("data-document-role") == "page":
             self.pages += 1
-
         classes = set((data.get("class") or "").split())
         if "neuronoeis-mark" in classes:
             self.neuronoeis_marks += 1
-
         if tag.lower() != "img" or "neuro-mark" not in classes:
             return
         src = data.get("src") or ""
@@ -79,7 +77,6 @@ def sha256_file(path: Path) -> str:
 
 
 def load_source(source: Path) -> tuple[str, str, str, list[str], str]:
-    """Return job_id, HTML, decoded SHA, envelope names, envelope aggregate SHA."""
     name = source.name
     if name.endswith(".html.gz.b64.part01"):
         prefix = name[: -len(".part01")]
@@ -115,118 +112,63 @@ def validate_brand(job_id: str, parser: SourceAuditParser) -> dict:
         if parser.mark_hashes:
             raise RuntimeError(f"{job_id}: legacy NeuroEvidence image mark prohibited in NeuroNoesis source")
         if parser.neuronoeis_marks != parser.pages:
-            raise RuntimeError(
-                f"{job_id}: NeuroNoesis mark count {parser.neuronoeis_marks} != page count {parser.pages}"
-            )
-        return {
-            "system": "NeuroNoesis",
-            "status": "PASS_ALL_PAGES",
-            "count": parser.neuronoeis_marks,
-            "validation": "class-count-per-page",
-        }
-
+            raise RuntimeError(f"{job_id}: NeuroNoesis mark count {parser.neuronoeis_marks} != page count {parser.pages}")
+        return {"system":"NeuroNoesis","status":"PASS_ALL_PAGES","count":parser.neuronoeis_marks,"validation":"class-count-per-page"}
     if parser.neuronoeis_marks:
         raise RuntimeError(f"{job_id}: NeuroNoesis mark found in legacy NeuroEvidence source")
     if len(parser.mark_hashes) != parser.pages:
-        raise RuntimeError(
-            f"{job_id}: NeuroEvidence mark count {len(parser.mark_hashes)} != page count {parser.pages}"
-        )
+        raise RuntimeError(f"{job_id}: NeuroEvidence mark count {len(parser.mark_hashes)} != page count {parser.pages}")
     wrong = [h for h in parser.mark_hashes if h != CANONICAL_NEUROEVIDENCE_SHA256]
     if wrong:
         raise RuntimeError(f"{job_id}: non-canonical NeuroEvidence mark detected")
-    return {
-        "system": "NeuroEvidence_legacy",
-        "status": "PASS_ALL_PAGES",
-        "sha256": CANONICAL_NEUROEVIDENCE_SHA256,
-        "count": len(parser.mark_hashes),
-        "validation": "canonical-png-sha256",
-    }
+    return {"system":"NeuroEvidence_legacy","status":"PASS_ALL_PAGES","sha256":CANONICAL_NEUROEVIDENCE_SHA256,"count":len(parser.mark_hashes),"validation":"canonical-png-sha256"}
 
 
 def render_source(source: Path) -> None:
     job_id, html_text, decoded_source_sha, envelope_names, envelope_sha = load_source(source)
-
-    parser = SourceAuditParser()
-    parser.feed(html_text)
+    parser = SourceAuditParser(); parser.feed(html_text)
     if parser.pages < 1:
         raise RuntimeError(f"{job_id}: no data-document-role=page sections found")
     brand_manifest = validate_brand(job_id, parser)
-
-    out_dir = FEED / job_id
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for stale in out_dir.glob("*.jpg"):
-        stale.unlink()
-
+    out_dir = FEED / job_id; out_dir.mkdir(parents=True, exist_ok=True)
+    for stale in out_dir.glob("*.jpg"): stale.unlink()
     with tempfile.TemporaryDirectory() as tmp:
         pdf_path = Path(tmp) / f"{job_id}.pdf"
         HTML(string=html_text, base_url=str(ROOT)).write_pdf(str(pdf_path))
         doc = pymupdf.open(pdf_path)
         if doc.page_count != parser.pages:
-            raise RuntimeError(
-                f"{job_id}: rendered PDF page count {doc.page_count} != source page count {parser.pages}"
-            )
-
-        items = []
-        scale = RENDER_DPI / 72.0
-        matrix = pymupdf.Matrix(scale, scale)
-        for index, page in enumerate(doc, start=1):
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
-            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            if image.size != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
-                raise RuntimeError(
-                    f"{job_id} page {index}: got {image.size}, expected {(EXPECTED_WIDTH, EXPECTED_HEIGHT)}"
-                )
-            output = out_dir / f"{index:02d}.jpg"
-            image.save(
-                output,
-                format="JPEG",
-                quality=JPEG_QUALITY,
-                optimize=True,
-                progressive=False,
-                subsampling=0,
-            )
-            items.append(
-                {
-                    "page": index,
-                    "file": output.name,
-                    "sha256": sha256_file(output),
-                    "bytes": output.stat().st_size,
-                    "width": EXPECTED_WIDTH,
-                    "height": EXPECTED_HEIGHT,
-                    "mode": "RGB",
-                }
-            )
-
-    manifest = {
-        "job_id": job_id,
-        "source_envelopes": envelope_names,
-        "source_envelope_aggregate_sha256": envelope_sha,
-        "decoded_html_sha256": decoded_source_sha,
-        "pages": parser.pages,
-        "format": "JPEG",
-        "dimensions": [EXPECTED_WIDTH, EXPECTED_HEIGHT],
-        "render_dpi": RENDER_DPI,
-        "jpeg_quality": JPEG_QUALITY,
-        "brand_mark": brand_manifest,
-        "items": items,
-    }
-    (out_dir / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+            raise RuntimeError(f"{job_id}: rendered PDF page count {doc.page_count} != source page count {parser.pages}")
+        items=[]; matrix=pymupdf.Matrix(RENDER_DPI/72.0, RENDER_DPI/72.0)
+        for index,page in enumerate(doc,start=1):
+            pix=page.get_pixmap(matrix=matrix,alpha=False)
+            image=Image.frombytes("RGB",(pix.width,pix.height),pix.samples)
+            if image.size != (EXPECTED_WIDTH,EXPECTED_HEIGHT):
+                raise RuntimeError(f"{job_id} page {index}: got {image.size}, expected {(EXPECTED_WIDTH, EXPECTED_HEIGHT)}")
+            output=out_dir/f"{index:02d}.jpg"
+            image.save(output,format="JPEG",quality=JPEG_QUALITY,optimize=True,progressive=False,subsampling=0)
+            items.append({"page":index,"file":output.name,"sha256":sha256_file(output),"bytes":output.stat().st_size,"width":EXPECTED_WIDTH,"height":EXPECTED_HEIGHT,"mode":"RGB"})
+    manifest={"job_id":job_id,"source_envelopes":envelope_names,"source_envelope_aggregate_sha256":envelope_sha,"decoded_html_sha256":decoded_source_sha,"pages":parser.pages,"format":"JPEG","dimensions":[EXPECTED_WIDTH,EXPECTED_HEIGHT],"render_dpi":RENDER_DPI,"jpeg_quality":JPEG_QUALITY,"brand_mark":brand_manifest,"items":items}
+    (out_dir/"manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(f"PASS {job_id}: {parser.pages} page(s), {brand_manifest['system']} mark on every page")
 
 
 def main() -> None:
-    plain = list(SOURCES.glob("HST-IG-*.html"))
-    compressed = list(SOURCES.glob("HST-IG-*.html.gz.b64"))
-    chunked = list(SOURCES.glob("HST-IG-*.html.gz.b64.part01"))
-    sources = sorted({*plain, *compressed, *chunked})
+    plain=list(SOURCES.glob("HST-IG-*.html")); compressed=list(SOURCES.glob("HST-IG-*.html.gz.b64")); chunked=list(SOURCES.glob("HST-IG-*.html.gz.b64.part01"))
+    sources=sorted({*plain,*compressed,*chunked})
     if not sources:
-        print("No sources found; nothing to render.")
-        return
-    FEED.mkdir(parents=True, exist_ok=True)
+        print("No sources found; nothing to render."); return
+    FEED.mkdir(parents=True,exist_ok=True)
+    passed=0; failures=[]
     for source in sources:
-        render_source(source)
+        try:
+            render_source(source); passed += 1
+        except Exception as exc:
+            failures.append((source.name,str(exc)))
+            print(f"WARN source skipped: {source.name}: {exc}")
+    if passed == 0:
+        raise RuntimeError(f"No source rendered successfully; failures={failures}")
+    if failures:
+        print(f"WARN {len(failures)} source(s) failed but {passed} source(s) rendered successfully")
 
 
 if __name__ == "__main__":
