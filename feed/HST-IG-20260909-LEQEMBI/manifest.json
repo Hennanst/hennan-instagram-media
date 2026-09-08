@@ -1,10 +1,10 @@
 {
-  "job_id": "HST-IG-20260907-CONSULTA",
+  "job_id": "HST-IG-20260909-LEQEMBI",
   "source_envelopes": [
-    "HST-IG-20260907-CONSULTA.html"
+    "HST-IG-20260909-LEQEMBI.html"
   ],
-  "source_envelope_aggregate_sha256": "aef888777565f8703f303fa7942a32c54a757e1b74b2c34f06026255646b114f",
-  "decoded_html_sha256": "aef888777565f8703f303fa7942a32c54a757e1b74b2c34f06026255646b114f",
+  "source_envelope_aggregate_sha256": "2530dfa8dc025621af0ff01b06778a5a30d0d66b7ffe17a7289cbe75a1dc034c",
+  "decoded_html_sha256": "2530dfa8dc025621af0ff01b06778a5a30d0d66b7ffe17a7289cbe75a1dc034c",
   "pages": 7,
   "format": "JPEG",
   "dimensions": [
@@ -23,8 +23,8 @@
     {
       "page": 1,
       "file": "01.jpg",
-      "sha256": "94fd9df251919c334c2a3c3c7add13cd0386f820cb139019f6975aaeaee985d6",
-      "bytes": 219620,
+      "sha256": "7ae7ed9ff51b91d5576e30bd6fa00025eeecdcf00d42d78693f1b7f99a13a65b",
+      "bytes": 205285,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -32,8 +32,8 @@
     {
       "page": 2,
       "file": "02.jpg",
-      "sha256": "aef35aae8c40a73ce4a13788b07d26f715919f0f47b5616b23cece8d79f24ad6",
-      "bytes": 165177,
+      "sha256": "d99f2f3289184de814724cc81f43e146813c473f7d02c2811d1b5a5de005bde8",
+      "bytes": 210995,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -41,8 +41,8 @@
     {
       "page": 3,
       "file": "03.jpg",
-      "sha256": "256181e2b818c9163297a6a7e3536b8a85e239368a8528cc0176a3e51fa71077",
-      "bytes": 218476,
+      "sha256": "8798f768d844c767415c1b494bf0c660408e96367c06818b45e0935554302e75",
+      "bytes": 183432,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -50,8 +50,8 @@
     {
       "page": 4,
       "file": "04.jpg",
-      "sha256": "7da4b74361277a7eedc163b48cc6b0ea8d12931a460938047c51f1704383a57b",
-      "bytes": 238465,
+      "sha256": "c12d98956d83ff973a6ae630a6d693a4379b90fdc26de56011e3774d8125fa68",
+      "bytes": 209484,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -59,8 +59,8 @@
     {
       "page": 5,
       "file": "05.jpg",
-      "sha256": "eb7beca05f1c311297b48c22197d398635719cf47cebc04cf090cd6e2ed9c289",
-      "bytes": 247642,
+      "sha256": "3ef991c399577e8012873369549774562ea5150fd849f02120285ddc42d2f0c7",
+      "bytes": 241199,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -68,8 +68,8 @@
     {
       "page": 6,
       "file": "06.jpg",
-      "sha256": "0448d326e30500157e9fa8ca613051ff3e51b107b9160b540a6b46c31529c02a",
-      "bytes": 244026,
+      "sha256": "e29d93a24c838cb0368be0ca7e0d8521e3a3fd4798c6de2d02924788d9790fa3",
+      "bytes": 199448,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
@@ -77,8 +77,8 @@
     {
       "page": 7,
       "file": "07.jpg",
-      "sha256": "5fa8c5cd0e1c372c9664d62f1fb99bf9afc74204dbd716f3e965f3946eedb44b",
-      "bytes": 184978,
+      "sha256": "a3dd424f62ecde492632ba28ec36b64b5b3a35166601d72e2bc6b9f1cff6cbee",
+      "bytes": 228874,
       "width": 1080,
       "height": 1350,
       "mode": "RGB"
